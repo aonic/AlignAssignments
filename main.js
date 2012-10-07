@@ -28,36 +28,34 @@
 define(function (require, exports, module) {
     "use strict";
     var COMMAND_ID = "AlignAssignments.align";
+    var MENU_NAME = "Align Assignments";
     
     // Brackets modules
     var EditorManager       = brackets.getModule("editor/EditorManager"),
         CommandManager      = brackets.getModule("command/CommandManager"),
-        KeyBindingManager   = brackets.getModule("command/KeyBindingManager");
+        KeyBindingManager   = brackets.getModule("command/KeyBindingManager"),
+        Menus               = brackets.getModule("command/Menus");
     
     // Local vars
     var Editor = EditorManager.getFocusedEditor(),
         cm     = Editor._codeMirror;
 
     function multiplySpaces(count){
-        var string = "";
-        while(count--)
-            string += " ";
-        
-        return string;
+        return new Array(count + 1).join(" ")
     }
     
     function getEqPos(string){
-        return string.indexOf("=");
+        return string.replace(/==/g, '##').indexOf("=");
     }
   
     function getFurthest(fromLine, toLine){
-        var line = cm.getLine(fromLine),
-            furthest = getEqPos(line);
+        var line               = cm.getLine(fromLine),
+            furthest           = getEqPos(line);
         
-        for(var currLine = fromLine + 1; currLine <= toLine; currLine++){
-            line = cm.getLine(currLine);
+        for(var currLine       = fromLine + 1; currLine <= toLine; currLine++){
+            line               = cm.getLine(currLine);
             if(furthest < getEqPos(line))
-                furthest = getEqPos(line);
+                furthest       = getEqPos(line);
         }
         
         return furthest;
@@ -70,20 +68,26 @@ define(function (require, exports, module) {
         for(var currLine = fromLine; currLine <= toLine; currLine++){
             line = cm.getLine(currLine);
             pos  = getEqPos(line);
-            
+
             if(pos < charPos && pos !== -1)
                 cm.replaceRange(multiplySpaces(charPos - pos), {line: currLine, ch: pos});
         }
     }
     
     function align(){
+        Editor = EditorManager.getFocusedEditor();
+        cm     = Editor._codeMirror;
+        
         var fromLine = Editor.getSelection().start.line,
             toLine   = Editor.getSelection().end.line,
-            charPos = getFurthest(fromLine, toLine);
-        
+            charPos  = getFurthest(fromLine, toLine);
+
         fixLines(fromLine, toLine, charPos);
     }
     
     CommandManager.register("Align Assignments", COMMAND_ID, align);
     KeyBindingManager.addBinding(COMMAND_ID, "Ctrl-Shift-A");
+    
+    var menu = Menus.getMenu(Menus.AppMenuBar.EDIT_MENU);
+    menu.addMenuItem(COMMAND_ID);
 });
